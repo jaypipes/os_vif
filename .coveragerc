@@ -1,0 +1,7 @@
+[run]
+branch = True
+source = os_vif
+omit = os_vif/tests/*,os_vif/openstack/*
+
+[report]
+ignore-errors = True
