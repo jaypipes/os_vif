@@ -19,6 +19,7 @@ from oslo_log import log as logging
 from oslo_utils import excutils
 
 from os_vif import iptables
+from os_vif.i18n import _LE
 from os_vif import pci
 
 LOG = logging.getLogger(__name__)
@@ -33,14 +34,14 @@ def set_vf_interface_vlan(pci_addr, mac_addr, vlan=0):
     exit_code = [0, 2, 254]
     port_state = 'up' if vlan > 0 else 'down'
     processutils.execute('sudo', 'ip', 'link', 'set', pf_ifname,
-                  'vf', vf_num,
-                  'mac', mac_addr,
-                  'vlan', vlan,
-                  check_exit_code=exit_code)
+                         'vf', vf_num,
+                         'mac', mac_addr,
+                         'vlan', vlan,
+                         check_exit_code=exit_code)
     # Bring up/down the VF's interface
     processutils.execute('sudo', 'ip', 'link', 'set', vf_ifname,
-                  port_state,
-                  check_exit_code=exit_code)
+                         port_state,
+                         check_exit_code=exit_code)
 
 
 def device_exists(device):
@@ -235,15 +236,17 @@ def ensure_bridge(bridge, interface, net_attrs=None, gateway=True,
         # Don't forward traffic unless we were told to be a gateway
         ipv4_filter = iptables_manager.ipv4['filter']
         if gateway:
-            for rule in get_gateway_rules(bridge):
+            for rule in iptables_manager.get_gateway_rules(bridge):
                 ipv4_filter.add_rule(*rule)
         else:
             ipv4_filter.add_rule('FORWARD',
                                  ('--in-interface %s -j %s'
-                                  % (bridge, CONF.iptables_drop_action)))
+                                  % (bridge,
+                                     iptables_manager.iptables_drop_action)))
             ipv4_filter.add_rule('FORWARD',
                                  ('--out-interface %s -j %s'
-                                  % (bridge, CONF.iptables_drop_action)))
+                                  % (bridge,
+                                     iptables_manager.iptables_drop_action)))
 
 @utils.synchronized('lock_bridge', external=True)
 def remove_bridge(bridge, gateway=True, filtering=True):
@@ -254,12 +257,12 @@ def remove_bridge(bridge, gateway=True, filtering=True):
         if filtering:
             ipv4_filter = iptables_manager.ipv4['filter']
             if gateway:
-                for rule in get_gateway_rules(bridge):
+                for rule in iptables_manager.get_gateway_rules(bridge):
                     ipv4_filter.remove_rule(*rule)
             else:
                 drop_actions = ['DROP']
-                if CONF.iptables_drop_action != 'DROP':
-                    drop_actions.append(CONF.iptables_drop_action)
+                if iptables_manager.iptables_drop_action != 'DROP':
+                    drop_actions.append(iptables_manager.iptables_drop_action)
 
                 for drop_action in drop_actions:
                     ipv4_filter.remove_rule('FORWARD',
@@ -278,24 +281,5 @@ def delete_bridge_dev(dev):
         processutils.execute('sudo', 'brctl', 'delbr', dev)
 
 
-def get_gateway_rules(bridge):
-    interfaces = CONF.forward_bridge_interface
-    if 'all' in interfaces:
-        return [('FORWARD', '-i %s -j ACCEPT' % bridge),
-                ('FORWARD', '-o %s -j ACCEPT' % bridge)]
-    rules = []
-    for iface in CONF.forward_bridge_interface:
-        if iface:
-            rules.append(('FORWARD', '-i %s -o %s -j ACCEPT' % (bridge,
-                                                                iface)))
-            rules.append(('FORWARD', '-i %s -o %s -j ACCEPT' % (iface,
-                                                                bridge)))
-    rules.append(('FORWARD', '-i %s -o %s -j ACCEPT' % (bridge, bridge)))
-    rules.append(('FORWARD', '-i %s -j %s' % (bridge,
-                                              CONF.iptables_drop_action)))
-    rules.append(('FORWARD', '-o %s -j %s' % (bridge,
-                                              CONF.iptables_drop_action)))
-    return rules
-
-
-iptables_manager = iptables.IptablesManager()
+# This is set in os_vif.initialize(**config)
+iptables_manager = None

@@ -10,14 +10,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+# TODO(jaypipes): Replace this entire module with use of the python-iptables
+# library: https://github.com/ldx/python-iptables
+
 from oslo_concurrency import processutils
 
-from oslo_log import log as logging
 import six
-
-from os_vif.i18n import _LW
-
-LOG = logging.getLogger(__name__)
 
 
 class IptablesRule(object):
@@ -102,9 +100,8 @@ class IptablesTable(object):
             chain_set = self.unwrapped_chains
 
         if name not in chain_set:
-            LOG.warning(_LW('Attempted to remove chain %s which does not '
-                            'exist'), name)
             return
+
         self.dirty = True
 
         # non-wrapped chains and rules need to be dealt with specially,
@@ -144,11 +141,7 @@ class IptablesTable(object):
             rule = ' '.join(map(self._wrap_target_chain, rule.split(' ')))
 
         rule_obj = IptablesRule(chain, rule, wrap, top)
-        if rule_obj in self.rules:
-            LOG.debug("Skipping duplicate iptables rule addition. "
-                      "%(rule)r already in %(rules)r",
-                      {'rule': rule_obj, 'rules': self.rules})
-        else:
+        if rule_obj not in self.rules:
             self.rules.append(IptablesRule(chain, rule, wrap, top))
             self.dirty = True
 
@@ -171,10 +164,7 @@ class IptablesTable(object):
                 self.remove_rules.append(IptablesRule(chain, rule, wrap, top))
             self.dirty = True
         except ValueError:
-            LOG.warning(_LW('Tried to remove rule that was not there:'
-                            ' %(chain)r %(rule)r %(wrap)r %(top)r'),
-                        {'chain': chain, 'rule': rule,
-                         'top': top, 'wrap': wrap})
+            pass
 
     def remove_rules_regex(self, regex):
         """Remove all rules matching regex."""
@@ -221,8 +211,13 @@ class IptablesManager(object):
     """
 
     def __init__(self, use_ipv6=False, iptables_top_regex=None,
-                 iptables_bottom_regex=None):
+                 iptables_bottom_regex=None, iptables_drop_action='DROP',
+                 forward_bridge_interface=None):
         self.use_ipv6 = use_ipv6
+        self.iptables_top_regex = iptables_top_regex
+        self.iptables_bottom_regex = iptables_bottom_regex
+        self.iptables_drop_action = iptables_drop_action
+        self.forward_bridge_interface = forward_bridge_interface or ['all']
         self.ipv4 = {'filter': IptablesTable(),
                      'nat': IptablesTable(),
                      'mangle': IptablesTable()}
@@ -302,8 +297,6 @@ class IptablesManager(object):
             return
         if self.dirty():
             self._apply()
-        else:
-            LOG.debug("Skipping apply due to lack of new rules")
 
     @utils.synchronized('iptables', external=True)
     def _apply(self):
@@ -330,7 +323,6 @@ class IptablesManager(object):
             processutils.execute('sudo', '%s-restore' % (cmd,), '-c',
                                  process_input='\n'.join(all_lines),
                                  attempts=5)
-        LOG.debug("IPTablesManager.apply completed with success")
 
     def _find_table(self, lines, table_name):
         if len(lines) < 3:
@@ -365,7 +357,7 @@ class IptablesManager(object):
         bottom_rules = []
 
         if self.iptables_top_regex:
-            regex = re.compile(CONF.iptables_top_regex)
+            regex = re.compile(self.iptables_top_regex)
             temp_filter = filter(lambda line: regex.search(line), new_filter)
             for rule_str in temp_filter:
                 new_filter = filter(lambda s: s.strip() != rule_str.strip(),
@@ -373,7 +365,7 @@ class IptablesManager(object):
             top_rules = temp_filter
 
         if self.iptables_bottom_regex:
-            regex = re.compile(CONF.iptables_bottom_regex)
+            regex = re.compile(self.iptables_bottom_regex)
             temp_filter = filter(lambda line: regex.search(line), new_filter)
             for rule_str in temp_filter:
                 new_filter = filter(lambda s: s.strip() != rule_str.strip(),
@@ -497,3 +489,22 @@ class IptablesManager(object):
             remove_rules.remove(rule)
 
         return new_filter
+
+    def get_gateway_rules(self, bridge):
+        interfaces = self.forward_bridge_interface
+        if 'all' in interfaces:
+            return [('FORWARD', '-i %s -j ACCEPT' % bridge),
+                    ('FORWARD', '-o %s -j ACCEPT' % bridge)]
+        rules = []
+        for iface in self.forward_bridge_interface:
+            if iface:
+                rules.append(('FORWARD', '-i %s -o %s -j ACCEPT' % (bridge,
+                                                                    iface)))
+                rules.append(('FORWARD', '-i %s -o %s -j ACCEPT' % (iface,
+                                                                    bridge)))
+        rules.append(('FORWARD', '-i %s -o %s -j ACCEPT' % (bridge, bridge)))
+        rules.append(('FORWARD', '-i %s -j %s' % (bridge,
+                                                  self.iptables_drop_action)))
+        rules.append(('FORWARD', '-o %s -j %s' % (bridge,
+                                                  self.iptables_drop_action)))
+        return rules
