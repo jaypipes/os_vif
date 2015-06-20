@@ -17,7 +17,6 @@ from os_vif import vnic_types
 
 # Constants for dictionary keys in the 'vif_details' field in the VIF
 # class
-VIF_DETAILS_PORT_FILTER = 'port_filter'
 VIF_DETAILS_OVS_HYBRID_PLUG = 'ovs_hybrid_plug'
 VIF_DETAILS_PHYSICAL_NETWORK = 'physical_network'
 
@@ -28,9 +27,6 @@ VIF_DETAILS_PROFILEID = 'profileid'
 VIF_DETAILS_VLAN = 'vlan'
 
 # Constants for vhost-user related fields in 'vif_details'.
-# Sets mode on vhost-user socket, valid values are 'client'
-# and 'server'
-VIF_DETAILS_VHOSTUSER_MODE = 'vhostuser_mode'
 # vhost-user socket path
 VIF_DETAILS_VHOSTUSER_SOCKET = 'vhostuser_socket'
 # Specifies whether vhost-user socket should be plugged
@@ -50,6 +46,7 @@ class VIF(base.VersionedObject):
 
     fields = {
         'id': fields.UUIDField(),
+        'ovs_interfaceid': fields.StringField(),
         # MAC address
         'address': fields.StringField(nullable=True),
         'network': fields.ObjectField('Network', nullable=True),
@@ -100,10 +97,6 @@ class VIF(base.VersionedObject):
     def veth_pair_names(self):
         return (("qvb%s" % self.id)[:_NIC_NAME_LEN],
                 ("qvo%s" % self.id)[:_NIC_NAME_LEN])
-
-    @property
-    def portfilter(self):
-        return self.details.get(VIF_DETAILS_PORTFILTER)
 
     @property
     def ovs_hybrid_plug(self):

@@ -17,6 +17,7 @@ from stevedore import extension
 import os_vif.exception
 import os_vif.iptables
 import os_vif.i18n
+import os_vif.objects
 import os_vif.linux_net
 
 _LE = os_vif.i18n._LE
@@ -47,6 +48,7 @@ def initialize(reset=False, **config):
         }
         ipm = os_vif.iptables.IptablesManager(**ipm_options)
         os_vif.linux_net.iptables_manager = ipm
+        os_vif.objects.register_all()
 
 
 def plug(vif, instance):
