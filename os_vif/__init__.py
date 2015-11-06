@@ -19,6 +19,7 @@ import os_vif.iptables
 import os_vif.i18n
 import os_vif.objects
 import os_vif.linux_net
+import os_vif.processutils
 
 _LE = os_vif.i18n._LE
 _LI = os_vif.i18n._LI
@@ -48,6 +49,7 @@ def initialize(reset=False, **config):
         }
         ipm = os_vif.iptables.IptablesManager(**ipm_options)
         os_vif.linux_net.iptables_manager = ipm
+        os_vif.processutils.configure(**config)
         os_vif.objects.register_all()
 
 

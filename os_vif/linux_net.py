@@ -14,13 +14,13 @@
 
 import os
 
-from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import excutils
 
 from os_vif import iptables
 from os_vif.i18n import _LE
 from os_vif import pci
+from os_vif import processutils
 
 LOG = logging.getLogger(__name__)
 
@@ -33,15 +33,17 @@ def set_vf_interface_vlan(pci_addr, mac_addr, vlan=0):
     # Set the VF's mac address and vlan
     exit_code = [0, 2, 254]
     port_state = 'up' if vlan > 0 else 'down'
-    processutils.execute('sudo', 'ip', 'link', 'set', pf_ifname,
+    processutils.execute('ip', 'link', 'set', pf_ifname,
                          'vf', vf_num,
                          'mac', mac_addr,
                          'vlan', vlan,
-                         check_exit_code=exit_code)
+                         check_exit_code=exit_code,
+                         run_as_root=True)
     # Bring up/down the VF's interface
-    processutils.execute('sudo', 'ip', 'link', 'set', vf_ifname,
+    processutils.execute('ip', 'link', 'set', vf_ifname,
                          port_state,
-                         check_exit_code=exit_code)
+                         check_exit_code=exit_code,
+                         run_as_root=True)
 
 
 def device_exists(device):
@@ -53,24 +55,29 @@ def create_tap_dev(dev, mac_address=None):
     if not device_exists(dev):
         try:
             # First, try with 'ip'
-            processutils.execute('sudo', 'ip', 'tuntap', 'add', dev, 'mode',
-                                 'tap', check_exit_code=[0, 2, 254])
+            processutils.execute('ip', 'tuntap', 'add', dev, 'mode',
+                                 'tap', check_exit_code=[0, 2, 254],
+                                 run_as_root=True)
         except processutils.ProcessExecutionError:
             # Second option: tunctl
-            processutils.execute('sudo', 'tunctl', '-b', '-t', dev)
+            processutils.execute('tunctl', '-b', '-t', dev,
+                                 run_as_root=True)
         if mac_address:
-            processutils.execute('sudo', 'ip', 'link', 'set', dev, 'address', mac_address,
-                                 check_exit_code=[0, 2, 254])
-        processutils.execute('sudo', 'ip', 'link', 'set', dev, 'up',
-                             check_exit_code=[0, 2, 254])
+            processutils.execute('ip', 'link', 'set', dev, 'address', mac_address,
+                                 check_exit_code=[0, 2, 254],
+                                 run_as_root=True)
+        processutils.execute('ip', 'link', 'set', dev, 'up',
+                             check_exit_code=[0, 2, 254],
+                             run_as_root=True)
 
 
 def delete_net_dev(dev):
     """Delete a network device only if it exists."""
     if device_exists(dev):
         try:
-            processutils.execute('sudo', 'ip', 'link', 'delete', dev,
-                                 check_exit_code=[0, 2, 254])
+            processutils.execute('ip', 'link', 'delete', dev,
+                                 check_exit_code=[0, 2, 254],
+                                 run_as_root=True)
             LOG.debug("Net device removed: '%s'", dev)
         except processutils.ProcessExecutionError:
             with excutils.save_and_reraise_exception():
@@ -78,12 +85,15 @@ def delete_net_dev(dev):
 
 
 def create_ivs_vif_port(dev, iface_id, mac, instance_id):
-    processutils.execute('sudo', 'ivs-ctl', 'add-port', dev)
+    processutils.execute('ivs-ctl', 'add-port', dev,
+                         run_as_root=True)
 
 
 def delete_ivs_vif_port(dev):
-    processutils.execute('sudo', 'ivs-ctl', 'del-port', dev)
-    processutils.execute('sudo', 'ip', 'link', 'delete', dev)
+    processutils.execute('ivs-ctl', 'del-port', dev,
+                         run_as_root=True)
+    processutils.execute('ip', 'link', 'delete', dev,
+                         run_as_root=True)
 
 
 def create_veth_pair(dev1_name, dev2_name, mtu):
@@ -93,23 +103,25 @@ def create_veth_pair(dev1_name, dev2_name, mtu):
     for dev in [dev1_name, dev2_name]:
         delete_net_dev(dev)
 
-    processutils.execute('sudo', 'ip', 'link', 'add', dev1_name,
-                         'type', 'veth', 'peer', 'name', dev2_name)
+    processutils.execute('ip', 'link', 'add', dev1_name,
+                         'type', 'veth', 'peer', 'name', dev2_name,
+                         run_as_root=True)
     for dev in [dev1_name, dev2_name]:
-        processutils.execute('sudo', 'ip', 'link', 'set', dev, 'up')
-        processutils.execute('sudo', 'ip', 'link', 'set', dev, 'promisc', 'on')
+        processutils.execute('ip', 'link', 'set', dev, 'up',
+                             run_as_root=True)
+        processutils.execute('ip', 'link', 'set', dev, 'promisc', 'on')
         _set_device_mtu(dev, mtu)
 
 
 def _set_device_mtu(dev, mtu):
     """Set the device MTU."""
-    processutils.execute('sudo', 'ip', 'link', 'set', dev, 'mtu', mtu,
+    processutils.execute('ip', 'link', 'set', dev, 'mtu', mtu,
                          check_exit_code=[0, 2, 254])
 
 
 def _ip_bridge_cmd(action, params, device):
     """Build commands to add/del ips to bridges/devices."""
-    cmd = ['sudo', 'ip', 'addr', action]
+    cmd = ['ip', 'addr', action]
     cmd.extend(params)
     cmd.extend(['dev', device])
     return cmd
@@ -136,18 +148,21 @@ def ensure_vlan(vlan_num, bridge_interface, mac_address=None, mtu=None):
     interface = 'vlan%s' % vlan_num
     if not device_exists(interface):
         LOG.debug('Starting VLAN interface %s', interface)
-        processutils.execute('sudo', 'ip', 'link', 'add', 'link',
+        processutils.execute('ip', 'link', 'add', 'link',
                              bridge_interface, 'name', interface, 'type',
                              'vlan', 'id', vlan_num,
-                             check_exit_code=[0, 2, 254])
+                             check_exit_code=[0, 2, 254],
+                             run_as_root=True)
         # (danwent) the bridge will inherit this address, so we want to
         # make sure it is the value set from the NetworkManager
         if mac_address:
-            processutils.execute('sudo', 'ip', 'link', 'set', interface,
+            processutils.execute('ip', 'link', 'set', interface,
                                  'address', mac_address,
-                                 check_exit_code=[0, 2, 254])
-        processutils.execute('sudo', 'ip', 'link', 'set', interface, 'up',
-                             check_exit_code=[0, 2, 254])
+                                 check_exit_code=[0, 2, 254],
+                                 run_as_root=True)
+        processutils.execute('ip', 'link', 'set', interface, 'up',
+                             check_exit_code=[0, 2, 254],
+                             run_as_root=True)
     # NOTE(vish): set mtu every time to ensure that changes to mtu get
     #             propogated
     _set_device_mtu(interface, mtu)
@@ -181,28 +196,34 @@ def ensure_bridge(bridge, interface, net_attrs=None, gateway=True,
     """
     if not device_exists(bridge):
         LOG.debug('Starting Bridge %s', bridge)
-        processutils.execute('sudo', 'brctl', 'addbr', bridge)
-        processutils.execute('sudo', 'brctl', 'setfd', bridge, 0)
+        processutils.execute('brctl', 'addbr', bridge,
+                             run_as_root=True)
+        processutils.execute('brctl', 'setfd', bridge, 0,
+                             run_as_root=True)
         # processutils.execute('brctl setageing %s 10' % bridge, run_as_root=True)
-        processutils.execute('sudo', 'brctl', 'stp', bridge, 'off')
+        processutils.execute('brctl', 'stp', bridge, 'off',
+                             run_as_root=True)
         # (danwent) bridge device MAC address can't be set directly.
         # instead it inherits the MAC address of the first device on the
         # bridge, which will either be the vlan interface, or a
         # physical NIC.
-        processutils.execute('sudo', 'ip', 'link', 'set', bridge, 'up')
+        processutils.execute('ip', 'link', 'set', bridge, 'up',
+                             run_as_root=True)
 
     if interface:
         LOG.debug('Adding interface %(interface)s to bridge %(bridge)s',
                   {'interface': interface, 'bridge': bridge})
-        out, err = processutils.execute('sudo', 'brctl', 'addif', bridge,
-                                        interface, check_exit_code=False)
+        out, err = processutils.execute('brctl', 'addif', bridge,
+                                        interface, check_exit_code=False,
+                                        run_as_root=True)
         if (err and err != "device %s is already a member of a bridge; "
                  "can't enslave it to bridge %s.\n" % (interface, bridge)):
             msg = _('Failed to add interface: %s') % err
             raise exception.NovaException(msg)
 
-        out, err = processutils.execute('sudo', 'ip', 'link', 'set',
-                                        interface, 'up', check_exit_code=False)
+        out, err = processutils.execute('ip', 'link', 'set',
+                                        interface, 'up', check_exit_code=False,
+                                        run_as_root=True)
 
         # NOTE(vish): This will break if there is already an ip on the
         #             interface, so we move any ips to the bridge
@@ -215,7 +236,8 @@ def ensure_bridge(bridge, interface, net_attrs=None, gateway=True,
             fields = line.split()
             if fields and 'via' in fields:
                 old_routes.append(fields)
-                processutils.execute('sudo', 'ip', 'route', 'del', *fields)
+                processutils.execute('ip', 'route', 'del', *fields,
+                                     run_as_root=True)
         out, err = processutils.execute('ip', 'addr', 'show', 'dev', interface,
                                         'scope', 'global')
         for line in out.split('\n'):
@@ -226,11 +248,14 @@ def ensure_bridge(bridge, interface, net_attrs=None, gateway=True,
                 else:
                     params = fields[1:-1]
                 processutils.execute(*_ip_bridge_cmd('del', params, fields[-1]),
-                                     check_exit_code=[0, 2, 254])
+                                     check_exit_code=[0, 2, 254],
+                                     run_as_root=True)
                 processutils.execute(*_ip_bridge_cmd('add', params, bridge),
-                                     check_exit_code=[0, 2, 254])
+                                     check_exit_code=[0, 2, 254],
+                                     run_as_root=True)
         for fields in old_routes:
-            processutils.execute('sudo', 'ip', 'route', 'add', *fields)
+            processutils.execute('ip', 'route', 'add', *fields,
+                                 run_as_root=True)
 
     if filtering:
         # Don't forward traffic unless we were told to be a gateway
@@ -277,8 +302,10 @@ def remove_bridge(bridge, gateway=True, filtering=True):
 def delete_bridge_dev(dev):
     """Delete a network bridge."""
     if device_exists(dev):
-        processutils.execute('sudo', 'ip', 'link', 'set', dev, 'down')
-        processutils.execute('sudo', 'brctl', 'delbr', dev)
+        processutils.execute('ip', 'link', 'set', dev, 'down',
+                             run_as_root=True)
+        processutils.execute('brctl', 'delbr', dev,
+                             run_as_root=True)
 
 
 # This is set in os_vif.initialize(**config)

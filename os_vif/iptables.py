@@ -13,7 +13,7 @@
 # TODO(jaypipes): Replace this entire module with use of the python-iptables
 # library: https://github.com/ldx/python-iptables
 
-from oslo_concurrency import processutils
+from os_vif import processutils
 
 import six
 
@@ -312,17 +312,18 @@ class IptablesManager(object):
             s += [('ip6tables', self.ipv6)]
 
         for cmd, tables in s:
-            all_tables, _err = processutils.execute('sudo', '%s-save' % (cmd,),
-                                                    '-c', attempts=5)
+            all_tables, _err = processutils.execute('%s-save' % (cmd,),
+                                                    '-c', attempts=5,
+                                                    run_as_root=True)
             all_lines = all_tables.split('\n')
             for table_name, table in six.iteritems(tables):
                 start, end = self._find_table(all_lines, table_name)
                 all_lines[start:end] = self._modify_rules(
                         all_lines[start:end], table, table_name)
                 table.dirty = False
-            processutils.execute('sudo', '%s-restore' % (cmd,), '-c',
+            processutils.execute('%s-restore' % (cmd,), '-c',
                                  process_input='\n'.join(all_lines),
-                                 attempts=5)
+                                 attempts=5, run_as_root=True)
 
     def _find_table(self, lines, table_name):
         if len(lines) < 3:
