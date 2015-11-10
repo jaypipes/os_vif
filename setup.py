@@ -39,5 +39,5 @@ setuptools.setup(
             'midonet = os_vif._plugins.midonet:MidonetPlugin',
             'vhostuser = os_vif._plugins.vhostuser:VhostuserPlugin',
             'vrouter = os_vif._plugins.vrouter:VrouterPlugin',
-        ],
+        ]},
     pbr=True)
