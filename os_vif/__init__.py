@@ -61,7 +61,7 @@ def initialize(reset=False, **config):
                     devices created by a VIF plugin.
     """
     global _EXT_MANAGER
-    if reset or (_EXT_MANAGER is not None):
+    if reset or (_EXT_MANAGER is None):
         _EXT_MANAGER = extension.ExtensionManager(namespace='os_vif',
                                                   invoke_on_load=True,
                                                   invoke_args=config)
