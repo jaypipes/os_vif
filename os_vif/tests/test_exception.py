@@ -17,6 +17,7 @@ from os_vif.tests import base
 
 """Mostly inspired by os-brick's tests."""
 
+
 class VIFExceptionTestCase(base.TestCase):
     def test_default_error_msg(self):
         class FakeVIFException(exception.ExceptionBase):

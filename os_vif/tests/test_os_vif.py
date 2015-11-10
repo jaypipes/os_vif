@@ -13,10 +13,16 @@
 import mock
 
 import os_vif
+from os_vif import exception
+from os_vif import objects
 from os_vif.tests import base
 
 
 class TestOSVIF(base.TestCase):
+
+    def setUp(self):
+        super(TestOSVIF, self).setUp()
+        os_vif._EXT_MANAGER = None
 
     def test_something(self):
         pass
@@ -29,3 +35,32 @@ class TestOSVIF(base.TestCase):
         mock_EM.assert_called_once_with(
             invoke_args={}, invoke_on_load=True, namespace='os_vif')
         self.assertNotEqual(None, os_vif._EXT_MANAGER)
+
+    def test_plug_not_initialized(self):
+        self.assertRaises(
+            exception.LibraryNotInitialized,
+            os_vif.plug, None, None)
+
+    def test_unplug_not_initialized(self):
+        self.assertRaises(
+            exception.LibraryNotInitialized,
+            os_vif.plug, None, None)
+
+    def test_plug(self):
+        plugin = mock.MagicMock()
+        with mock.patch('stevedore.extension.ExtensionManager',
+                        return_value={'foobar': plugin}):
+            os_vif.initialize()
+            instance = mock.MagicMock()
+            vif = objects.vif.VIF(id='uniq', plugin='foobar')
+            os_vif.plug(vif, instance)
+            plugin.plug.assert_called_once_with(vif, instance)
+
+    def test_unplug(self):
+        plugin = mock.MagicMock()
+        with mock.patch('stevedore.extension.ExtensionManager',
+                        return_value={'foobar': plugin}):
+            os_vif.initialize()
+            vif = objects.vif.VIF(id='uniq', plugin='foobar')
+            os_vif.unplug(vif)
+            plugin.unplug.assert_called_once_with(vif)
