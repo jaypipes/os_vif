@@ -41,7 +41,7 @@ class Subnet(base.VersionedObject):
         version = kwargs.pop('version', None)
 
         if cidr and not version:
-            version = netaddr.IPNetwork(cidr]).version
+            version = netaddr.IPNetwork(cidr).version
         super(Subnet, self).__init__(cidr=cidr, dns=dns, gateway=gateway,
                                      ips=ips, routes=routes, version=version)
 
