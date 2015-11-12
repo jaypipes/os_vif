@@ -15,11 +15,8 @@ from oslo_log import log as logging
 from stevedore import extension
 
 import os_vif.exception
-import os_vif.iptables
 import os_vif.i18n
 import os_vif.objects
-import os_vif.linux_net
-import os_vif.processutils
 
 _LE = os_vif.i18n._LE
 _LI = os_vif.i18n._LI
@@ -31,25 +28,43 @@ LOG = logging.getLogger('os_vif')
 def initialize(reset=False, **config):
     """
     Loads all os_vif plugins and initializes them with a dictionary of
-    configuration options.
+    configuration options. These configuration options are passed as-is
+    to the individual VIF plugins that are loaded via stevedore.
+
+    :param reset: Recreate and load the VIF plugin extensions.
+
+    The following configuration options are currently known to be
+    used by the VIF plugins, however this list may change and you
+    should check the documentation of individual plugins for a complete
+    list of configuration options that the plugin understands or uses.
+
+    :param **config: Configuration option dictionary.
+
+        `use_ipv6`: Default: False. For plugins that configure IPv6 iptables
+                    rules or functionality, set this option to True if you want
+                    to support IPv6.
+        `disable_rootwrap`: Default: False. Set to True to force plugins to use
+                    sudoers files instead of any `oslo.rootwrap` functionality.
+        `use_rootwrap_daemon`: Default: False. Set to True to use the optional
+                    `oslo.rootwrap` daemon for better performance of root-run
+                    commands.
+        `rootwrap_config`: Default: /etc/nova/rootwrap.conf. Path to the
+                    rootwrap configuration file.
+        `iptables_top_regex`: Default: ''. Override top filters in iptables
+                    rules construction.
+        `iptables_bottom_regex`: Default: ''. Override bottom filters in
+                    iptables rules construction.
+        `iptables_drop_action`: Default: DROP. Override the name of the drop
+                    action in iptables rules.
+        `forward_bridge_interface`: Default: ['all'].
+        `network_device_mtu`: Default: 1500. Override the MTU of network
+                    devices created by a VIF plugin.
     """
     global _EXT_MANAGER
     if reset or (_EXT_MANAGER is not None):
         _EXT_MANAGER = extension.ExtensionManager(namespace='os_vif',
                                                   invoke_on_load=True,
                                                   invoke_args=config)
-
-        ipm_options = {
-            'use_ipv6': config.get('use_ipv6', False),
-            'iptables_top_regex': config.get('iptables_top_regex', ''),
-            'iptables_bottom_regex': config.get('iptables_bottom_regex', ''),
-            'iptables_drop_action': config.get('iptables_drop_action', 'DROP'),
-            'forward_bridge_interface':
-                config.get('forward_bridge_interface', ['all']),
-        }
-        ipm = os_vif.iptables.IptablesManager(**ipm_options)
-        os_vif.linux_net.iptables_manager = ipm
-        os_vif.processutils.configure(**config)
         os_vif.objects.register_all()
 
 
