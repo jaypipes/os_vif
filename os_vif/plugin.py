@@ -20,18 +20,23 @@ class PluginInfo(object):
     Class describing the plugin and the versions of VIF object it understands.
     """
 
-    def __init__(self, vif_types, vif_object_version):
+    def __init__(self, vif_types, vif_object_min_version,
+                 vif_object_max_version):
         """
         Constructs the PluginInfo object.
 
         :param vif_types: set of strings identifying the VIF types that are
                           implemented by the plugin.
-        :param vif_object_version: String representing the latest version of
-                          the `os_vif.objects.VIF` object that the plugin
+        :param vif_object_min_version: String representing the earliest version
+                          of the `os_vif.objects.VIF` object that the plugin
+                          understands.
+        :param vif_object_max_version: String representing the latest version
+                          of the `os_vif.objects.VIF` object that the plugin
                           understands.
         """
         self.vif_types = vif_types
-        self.vif_object_version = vif_object_version
+        self.vif_object_min_version = vif_object_min_version
+        self.vif_object_max_version = vif_object_max_version
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -49,7 +54,7 @@ class PluginBase(object):
     def describe(self):
         """
         Return an object that describes the plugin's supported vif types and
-        latest known VIF object version.
+        the earliest/latest known VIF object versions.
 
         :returns: A `os_vif.plugin.PluginInfo` instance
         """
