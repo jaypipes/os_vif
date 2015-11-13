@@ -15,21 +15,28 @@ import abc
 import six
 
 
+class PluginInfo(object):
+    """
+    Class describing the plugin and the versions of VIF object it understands.
+    """
+
+    def __init__(self, vif_types, vif_object_version):
+        """
+        Constructs the PluginInfo object.
+
+        :param vif_types: set of strings identifying the VIF types that are
+                          implemented by the plugin.
+        :param vif_object_version: String representing the latest version of
+                          the `os_vif.objects.VIF` object that the plugin
+                          understands.
+        """
+        self.vif_types = vif_types
+        self.vif_object_version = vif_object_version
+
+
 @six.add_metaclass(abc.ABCMeta)
 class PluginBase(object):
     """Base class for all VIF plugins."""
-
-    VIF_TYPE = 'unknown'
-    """
-    Should be overridden with a string representing the VIF type the plugin
-    supports.
-    """
-
-    SUPPORTED_VNIC_TYPES = (None, )
-    """
-    Should be overridden with one or more constants for VNIC types in
-    `os_vif.vnic_types`.
-    """
 
     def __init__(self, **config):
         """
@@ -38,8 +45,18 @@ class PluginBase(object):
         """
         self.config = config
 
+    @abs.abstractmethod
+    def describe(self):
+        """
+        Return an object that describes the plugin's supported vif types and
+        latest known VIF object version.
+
+        :returns: A `os_vif.plugin.PluginInfo` instance
+        """
+        raise NotImplementedError("describe")
+
     @abc.abstractmethod
-    def do_plug(self, instance, vif):
+    def plug(self, instance, vif):
         """
         Given a model of a VIF, perform operations to plug the VIF properly.
 
@@ -47,20 +64,18 @@ class PluginBase(object):
         :param vif: `os_vif.objects.VIF` object.
         :raises `processutils.ProcessExecutionError`. Plugins implementing
                 this method should let `processutils.ProcessExecutionError`
-                bubble up. The plug() method catches, logs, and raises a
-                standardized os_vif library exception.
+                bubble up.
         """
-        raise NotImplementedError('do_plug')
+        raise NotImplementedError('plug')
 
     @abc.abstractmethod
-    def do_unplug(self, vif):
+    def unplug(self, vif):
         """
         Given a model of a VIF, perform operations to unplug the VIF properly.
 
         :param vif: `os_vif.objects.VIF` object.
         :raises `processutils.ProcessExecutionError`. Plugins implementing
                 this method should let `processutils.ProcessExecutionError`
-                bubble up. The plug() method catches, logs, and raises a
-                standardized os_vif library exception.
+                bubble up.
         """
-        raise NotImplementedError('do_unplug')
+        raise NotImplementedError('unplug')
