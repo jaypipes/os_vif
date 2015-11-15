@@ -7,9 +7,8 @@ A library for plugging and unplugging virtual interfaces in OpenStack.
 Features
 --------
 
-* A base VIF plugin class that supplies a plug() and unplug() interface.
-* A set of plugins that implement plug() and unplug() for a variety
-  of common virtual interface types.
+* A base VIF plugin class that supplies a plug() and unplug() interface
+* Versioned objects that represent a virtual interface and its components
 
 Usage
 -----
@@ -30,11 +29,8 @@ keyword arguments for configuration options::
                       forward_bridge_interface=['all'])
 
 Once the `os_vif` library is initialized, there are only two other library
-functions: `os_vif.plug()` and `os_vif.unplug()`. The `os_vif.plug()` function
-accepts two arguments. The first argument should be a `os_vif.objects.VIF`
-object. The second should be a `nova.objects.Instance` object representing
-the virtual machine that should have a virtual interface plugged into the
-underlying network::
+functions: `os_vif.plug()` and `os_vif.unplug()`. Both methods accept a single
+argument of type `os_vif.objects.VIF`::
 
     import uuid
 
@@ -45,6 +41,7 @@ underlying network::
 
     instance_uuid = 'd7a730ca-3c28-49c3-8f26-4662b909fe8a'
     instance = nova_objects.Instance.get_by_uuid(instance_uuid)
+    instance_info = vif_objects.InstanceInfo.from_nova_instance(instance)
 
     subnet = vif_objects.Subnet(cidr='192.168.1.0/24')
     subnets = vif_objects.SubnetList([subnet])
@@ -67,18 +64,19 @@ underlying network::
                           profile=None,
                           vnic_type=vnic_types.NORMAL,
                           active=True,
-                          preserve_on_delete=False)
+                          preserve_on_delete=False,
+                          instance_info=instance_info)
 
     # Now do the actual plug operations to connect the VIF to
     # the backing network interface.
     try:
-        os_vif.plug(vif, instance)
+        os_vif.plug(vif)
     except vif_exc.PlugException as err:
         # Handle the failure...
 
     # If you are removing a virtual machine and its interfaces,
     # you would use the unplug() operation:
     try:
-        os_vif.unplug(vif, instance)
+        os_vif.unplug(vif)
     except vif_exc.UnplugException as err:
         # Handle the failure...
