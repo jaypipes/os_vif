@@ -46,6 +46,7 @@ class VIF(base.VersionedObject):
 
     fields = {
         'id': fields.UUIDField(),
+        'instance_info': fields.ObjectField('InstanceInfo'),
         'ovs_interfaceid': fields.StringField(),
         # MAC address
         'address': fields.StringField(nullable=True),
@@ -63,7 +64,7 @@ class VIF(base.VersionedObject):
                  details=None, devname=None, ovs_interfaceid=None,
                  qbh_params=None, qbg_params=None, active=False,
                  vnic_type=vnic_types.NORMAL, profile=None,
-                 preserve_on_delete=False):
+                 preserve_on_delete=False, instance_info=None):
         details = details or {}
         ovs_id = ovs_interfaceid or id
         if not devname:
@@ -76,6 +77,7 @@ class VIF(base.VersionedObject):
                                   active=active, vnic_type=vnic_type,
                                   profile=profile,
                                   preserve_on_delete=preserve_on_delete,
+                                  instance_info=instance_info,
                                   )
 
     def devname_with_prefix(self, prefix):
