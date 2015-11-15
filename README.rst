@@ -59,7 +59,7 @@ argument of type `os_vif.objects.VIF`::
     vif = vif_objects.VIF(id=vif_uuid,
                           address=None,
                           network=network,
-                          type='vhostuser',
+                          plugin='vhostuser',
                           details=details,
                           profile=None,
                           vnic_type=vnic_types.NORMAL,

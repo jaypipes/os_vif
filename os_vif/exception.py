@@ -48,7 +48,7 @@ class LibraryNotInitialized(ExceptionBase):
 
 
 class NoMatchingPlugin(ExceptionBase):
-    msg_fmt = _("No plugin was found that handles VIF of type %(vif_type)s")
+    msg_fmt = _("No VIF plugin was found with the name %(plugin_name)s")
 
 
 class PlugException(ExceptionBase):

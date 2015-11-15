@@ -85,11 +85,11 @@ def plug(vif, instance):
     if _EXT_MANAGER is None:
         raise os_vif.exception.LibraryNotInitialized()
 
-    vif_type = vif.type
+    plugin_name = vif.plugin
     try:
-        plugin = _EXT_MANAGER[vif_type]
+        plugin = _EXT_MANAGER[plugin_name]
     except KeyError:
-        raise os_vif.exception.NoMatchingPlugin(vif_type=vif_type)
+        raise os_vif.exception.NoMatchingPlugin(plugin_name=plugin_name)
 
     try:
         LOG.debug("Plugging vif %s", vif)
@@ -116,11 +116,11 @@ def unplug(vif):
     if _EXT_MANAGER is None:
         raise os_vif.exception.LibraryNotInitialized()
 
-    vif_type = vif.type
+    plugin_name = vif.plugin
     try:
-        plugin = _EXT_MANAGER[vif_type]
+        plugin = _EXT_MANAGER[plugin_name]
     except KeyError:
-        raise os_vif.exception.NoMatchingPlugin(vif_type=vif_type)
+        raise os_vif.exception.NoMatchingPlugin(plugin_name=plugin_name)
 
     try:
         LOG.debug("Unplugging vif %s", vif)
