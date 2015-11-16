@@ -13,8 +13,6 @@
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
 
-from os_vif import vnic_types
-
 
 class Network(base.VersionedObject):
     """Represents a network."""

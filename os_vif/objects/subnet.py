@@ -15,8 +15,6 @@ import netaddr
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
 
-from os_vif import vnic_types
-
 
 class Subnet(base.VersionedObject):
     """Represents a subnet."""
