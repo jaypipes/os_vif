@@ -32,6 +32,10 @@ VIF_DETAILS_VHOSTUSER_SOCKET = 'vhostuser_socket'
 # Specifies whether vhost-user socket should be plugged
 # into ovs bridge. Valid values are True and False
 VIF_DETAILS_VHOSTUSER_OVS_PLUG = 'vhostuser_ovs_plug'
+# Constants for vhost-user related fields in 'vif_details'.
+# Sets mode on vhost-user socket, valid values are 'client'
+# and 'server'
+VIF_DETAILS_VHOSTUSER_MODE = 'vhostuser_mode'
 
 # Constant for max length of network interface names
 # eg 'bridge' in the Network class or 'devname' in
