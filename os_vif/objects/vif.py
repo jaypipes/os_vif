@@ -81,6 +81,27 @@ class VIF(base.VersionedObject):
                                   instance_info=instance_info,
                                   )
 
+    @classmethod
+    def from_neutronclient(cls, port, network):
+        """
+        Returns a new VIF object by inspecting a supplied Neutron port and
+        network object.
+
+        :param port: The port dict returned by a call to
+                     `neutronclient.v2_0.client.Client.show_port()`
+        :param port: The network dict returned by a call to
+                     `neutronclient.v2_0.client.Client.show_network()`
+        """
+        # First, construct the network object and its children
+        # TODO(jaypipes): Pull in code from neutronv2/api.py in Nova, lines
+        # 1579-1626
+
+        # Next, grab the base attributes of the os_vif.objects.VIF object
+        vif_active = False
+        if (current_neutron_port['admin_state_up'] is False
+            or current_neutron_port['status'] == 'ACTIVE'):
+            vif_active = True
+
     def devname_with_prefix(self, prefix):
         """Returns the device name for the VIF, with the a replaced prefix."""
         return prefix + self.devname[3:]
