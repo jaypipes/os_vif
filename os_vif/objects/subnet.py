@@ -25,10 +25,10 @@ class Subnet(base.VersionedObject):
 
     fields = {
         'cidr': fields.StringField(nullable=True),
-        'dns': fields.SetOfStringsField(),
+        'dns': fields.ListOfStringsField(),
         'gateway': fields.StringField(),
-        'ips': fields.SetOfStringsField(),
-        'routes': fields.SetOfStringsField(),
+        'ips': fields.ListOfStringsField(),
+        'routes': fields.ListOfStringsField(),
         'version': fields.IntegerField(nullable=True),
     }
 
