@@ -97,7 +97,7 @@ def plug(vif, instance):
         LOG.info(_LI("Successfully plugged vif %s"), vif)
     except processutils.ProcessExecutionError as err:
         LOG.error(_LE("Failed to plug vif %s. Got error: %s"), vif, err)
-        raise exception.PlugException(vif=vif, err=err)
+        raise os_vif.exception.PlugException(vif=vif, err=err)
 
 
 def unplug(vif):
@@ -128,4 +128,4 @@ def unplug(vif):
         LOG.info(_LI("Successfully unplugged vif %s"), vif)
     except processutils.ProcessExecutionError as err:
         LOG.error(_LE("Failed to unplug vif %s. Got error: %s"), vif, err)
-        raise exception.UnplugException(vif=vif, err=err)
+        raise os_vif.exception.UnplugException(vif=vif, err=err)
