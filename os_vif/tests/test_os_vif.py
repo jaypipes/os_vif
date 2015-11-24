@@ -24,9 +24,6 @@ class TestOSVIF(base.TestCase):
         super(TestOSVIF, self).setUp()
         os_vif._EXT_MANAGER = None
 
-    def test_something(self):
-        pass
-
     @mock.patch('stevedore.extension.ExtensionManager')
     def test_initialize(self, mock_EM):
         self.assertEqual(None, os_vif._EXT_MANAGER)
