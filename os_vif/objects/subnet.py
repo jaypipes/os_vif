@@ -15,8 +15,6 @@ import netaddr
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
 
-from os_vif import vnic_types
-
 
 class Subnet(base.VersionedObject):
     """Represents a subnet."""
@@ -25,10 +23,10 @@ class Subnet(base.VersionedObject):
 
     fields = {
         'cidr': fields.StringField(nullable=True),
-        'dns': fields.SetOfStringsField(),
+        'dns': fields.ListOfStringsField(),
         'gateway': fields.StringField(),
-        'ips': fields.SetOfStringsField(),
-        'routes': fields.SetOfStringsField(),
+        'ips': fields.ListOfStringsField(),
+        'routes': fields.ListOfStringsField(),
         'version': fields.IntegerField(nullable=True),
     }
 
@@ -41,7 +39,7 @@ class Subnet(base.VersionedObject):
         version = kwargs.pop('version', None)
 
         if cidr and not version:
-            version = netaddr.IPNetwork(cidr]).version
+            version = netaddr.IPNetwork(cidr).version
         super(Subnet, self).__init__(cidr=cidr, dns=dns, gateway=gateway,
                                      ips=ips, routes=routes, version=version)
 

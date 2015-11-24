@@ -61,7 +61,7 @@ def initialize(reset=False, **config):
                     devices created by a VIF plugin.
     """
     global _EXT_MANAGER
-    if reset or (_EXT_MANAGER is not None):
+    if reset or (_EXT_MANAGER is None):
         _EXT_MANAGER = extension.ExtensionManager(namespace='os_vif',
                                                   invoke_on_load=True,
                                                   invoke_args=config)
@@ -96,8 +96,9 @@ def plug(vif, instance):
         plugin.plug(vif, instance)
         LOG.info(_LI("Successfully plugged vif %s"), vif)
     except processutils.ProcessExecutionError as err:
-        LOG.error(_LE("Failed to plug vif %s. Got error: %s"), vif, err)
-        raise exception.PlugException(vif=vif, err=err)
+        LOG.error(_LE("Failed to plug vif %(vif)s. Got error: %(err)s"),
+                  vif=vif, err=err)
+        raise os_vif.exception.PlugException(vif=vif, err=err)
 
 
 def unplug(vif):
@@ -127,5 +128,6 @@ def unplug(vif):
         plugin.unplug(vif)
         LOG.info(_LI("Successfully unplugged vif %s"), vif)
     except processutils.ProcessExecutionError as err:
-        LOG.error(_LE("Failed to unplug vif %s. Got error: %s"), vif, err)
-        raise exception.UnplugException(vif=vif, err=err)
+        LOG.error(_LE("Failed to unplug vif %(vif)s. Got error: %(err)s"),
+                  vif=vif, err=err)
+        raise os_vif.exception.UnplugException(vif=vif, err=err)
